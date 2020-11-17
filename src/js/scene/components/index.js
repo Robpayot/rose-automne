@@ -30,7 +30,7 @@ export default class Scene {
       [
         {
           name: 'image',
-          texture: `${ASSETS}images/vignettage.png`,
+          texture: `img/social.png`,
         },
       ],
       this.init,
@@ -40,11 +40,12 @@ export default class Scene {
   init = () => {
     this.buildStats()
     this.buildScene()
+    this.buildTextureScene()
     this.buildRender()
     this.buildCamera()
     this.buildControls()
 
-    this.buildPlan()
+    this.buildCube()
 
     this.initGUI()
 
@@ -62,8 +63,7 @@ export default class Scene {
     GUI.add(this.guiController, 'amplitude', 0.01, 1.0).onChange(this.guiChange)
   }
 
-  guiChange = () => {
-  }
+  guiChange = () => {}
 
   events() {
     window.addEventListener(WINDOW_RESIZE, this.handleResize, { passive: true })
@@ -82,6 +82,41 @@ export default class Scene {
     this.scene = new THREE.Scene()
 
     this.scene.background = new THREE.Color(0xffffff)
+  }
+
+  buildTextureScene() {
+    //Create the texture that will store our result
+    this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
+
+    this.rtScene = new THREE.Scene()
+    this.rtScene.background = new THREE.Color('red')
+
+    this.uniforms = {
+      color1: { value: new THREE.Color(0xfa35df) },
+      color2: { value: new THREE.Color(0xf47b20) },
+      time: { value: 1.0 },
+    }
+    const geometry = new THREE.PlaneBufferGeometry(window.innerWidth, window.innerHeight, 32)
+    const material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: this.uniforms,
+    })
+    const plane = new THREE.Mesh(geometry, material)
+    // this.bufferScene.add(plane)
+
+    const aspectRatio = this.width / this.height
+    const fieldOfView = 10
+    const nearPlane = 1
+    const farPlane = 10000
+
+    this.rtCamera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
+    this.rtCamera.updateProjectionMatrix()
+    this.rtCamera.position.y = 0
+    this.rtCamera.position.z = 100
+    this.rtCamera.lookAt(0, 0, 0)
+
+    this.rtScene.add(this.rtCamera)
   }
 
   buildRender() {
@@ -110,6 +145,7 @@ export default class Scene {
     this.camera.lookAt(0, 0, 0)
 
     this.scene.add(this.camera)
+
     // scene.add( camera );
     // CameraController.init(this.camera, this.scene)
   }
@@ -119,25 +155,15 @@ export default class Scene {
     this.controls.enableDamping = true
   }
 
-  buildPlan() {
-    this.uniforms = {
-      color1: { value: new THREE.Color(0xFA35DF) },
-      color2: { value: new THREE.Color(0xf47b20) },
-      time: { value: 1.0 },
-    }
-    const geometry = new THREE.PlaneBufferGeometry(16, 10, 32)
-    const material = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: this.uniforms,
-    });
-    const cube = new THREE.Mesh(geometry, material)
-    this.scene.add(cube)
-
-    // const geometry2 = new THREE.BoxBufferGeometry(5, 5, 32)
-    // const material2 = new THREE.MeshBasicMaterial({color: 0x00ff00});
-    // const cube2 = new THREE.Mesh(geometry2, material2)
-    // this.scene.add(cube2)
+  buildCube() {
+    const { texture } = LoaderManager.subjects.image
+    console.log(texture)
+    const geometry2 = new THREE.BoxBufferGeometry(5, 5, 32)
+    const material2 = new THREE.MeshBasicMaterial()
+    material2.map = texture;
+    console.log(this.renderTarget)
+    const cube2 = new THREE.Mesh(geometry2, material2)
+    this.scene.add(cube2)
   }
 
   // RAF
@@ -147,6 +173,11 @@ export default class Scene {
     this.stats.begin()
 
     if (this.controls) this.controls.update() // for damping
+    // draw render target scene to render target
+    this.renderer.setRenderTarget(this.renderTarget)
+    this.renderer.render(this.rtScene, this.rtCamera)
+    this.renderer.setRenderTarget(null)
+
     this.renderer.render(this.scene, this.camera)
 
     this.uniforms.time.value = now / 1000
