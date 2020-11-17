@@ -7,13 +7,11 @@ import GUI from './Gui'
 import LoaderManager from '../../managers/LoaderManager'
 
 // components
-import CameraController from './CameraController/index'
 
 import { RAF, WINDOW_RESIZE, MOUSE_MOVE, DEBUG, SCROLL, START_SCENE } from '../../constants/index'
 import fragmentShader from '../shaders/custom.frag'
 import vertexShader from '../shaders/custom.vert'
 
-const ASSETS = 'img/assets-scene/'
 
 export default class Scene {
   constructor(el) {
@@ -39,13 +37,11 @@ export default class Scene {
 
   init = () => {
     this.buildStats()
-    this.buildScene()
     this.buildTextureScene()
+    this.buildScene()
     this.buildRender()
     this.buildCamera()
     this.buildControls()
-
-    this.buildCube()
 
     this.initGUI()
 
@@ -81,7 +77,7 @@ export default class Scene {
   buildScene() {
     this.scene = new THREE.Scene()
 
-    this.scene.background = new THREE.Color(0xffffff)
+    this.scene.background = this.renderTarget.texture
   }
 
   buildTextureScene() {
@@ -89,21 +85,21 @@ export default class Scene {
     this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
 
     this.rtScene = new THREE.Scene()
-    this.rtScene.background = new THREE.Color('red')
+    this.rtScene.background = new THREE.Color('blue')
 
     this.uniforms = {
       color1: { value: new THREE.Color(0xfa35df) },
       color2: { value: new THREE.Color(0xf47b20) },
       time: { value: 1.0 },
     }
-    const geometry = new THREE.PlaneBufferGeometry(window.innerWidth, window.innerHeight, 32)
+    const geometry = new THREE.PlaneBufferGeometry(36, 20, 32)
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
       uniforms: this.uniforms,
     })
     const plane = new THREE.Mesh(geometry, material)
-    // this.bufferScene.add(plane)
+    this.rtScene.add(plane)
 
     const aspectRatio = this.width / this.height
     const fieldOfView = 10
@@ -126,8 +122,6 @@ export default class Scene {
       alpha: false,
       autoClearColor: false,
     })
-
-    // this.renderer.toneMapping = THREE.ReinhardToneMapping // ACESFilmicToneMapping,
 
     this.setSizes()
   }
@@ -155,17 +149,6 @@ export default class Scene {
     this.controls.enableDamping = true
   }
 
-  buildCube() {
-    const { texture } = LoaderManager.subjects.image
-    console.log(texture)
-    const geometry2 = new THREE.BoxBufferGeometry(5, 5, 32)
-    const material2 = new THREE.MeshBasicMaterial()
-    material2.map = texture;
-    console.log(this.renderTarget)
-    const cube2 = new THREE.Mesh(geometry2, material2)
-    this.scene.add(cube2)
-  }
-
   // RAF
   render = e => {
     const { now } = e.detail
@@ -181,9 +164,6 @@ export default class Scene {
     this.renderer.render(this.scene, this.camera)
 
     this.uniforms.time.value = now / 1000
-    // console.log(this.uniforms.time.value)
-
-    // CameraController.render(now)
 
     this.stats.end()
   }
