@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'stats-js'
 import createCustomEvent from '~utils/createCustomEvent'
 import GUI from './Gui'
+import { randomFloat } from '~utils/math'
 
 import LoaderManager from '../../managers/LoaderManager'
 
@@ -30,6 +31,14 @@ export default class Scene {
           name: 'image',
           texture: `img/social.png`,
         },
+        {
+          name: 'leave1',
+          texture: `img/leave-1.png`,
+        },
+        {
+          name: 'leave2',
+          texture: `img/leave-2.png`,
+        },
       ],
       this.init,
     )
@@ -42,6 +51,7 @@ export default class Scene {
     this.buildRender()
     this.buildCamera()
     this.buildControls()
+    this.buildParticles()
 
     this.initGUI()
 
@@ -80,41 +90,6 @@ export default class Scene {
     this.scene.background = this.renderTarget.texture
   }
 
-  buildTextureScene() {
-    //Create the texture that will store our result
-    this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
-
-    this.rtScene = new THREE.Scene()
-    this.rtScene.background = new THREE.Color('blue')
-
-    this.uniforms = {
-      color1: { value: new THREE.Color(0xfa35df) },
-      color2: { value: new THREE.Color(0xf47b20) },
-      time: { value: 1.0 },
-    }
-    const geometry = new THREE.PlaneBufferGeometry(36, 20, 32)
-    const material = new THREE.ShaderMaterial({
-      vertexShader,
-      fragmentShader,
-      uniforms: this.uniforms,
-    })
-    const plane = new THREE.Mesh(geometry, material)
-    this.rtScene.add(plane)
-
-    const aspectRatio = this.width / this.height
-    const fieldOfView = 10
-    const nearPlane = 1
-    const farPlane = 10000
-
-    this.rtCamera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
-    this.rtCamera.updateProjectionMatrix()
-    this.rtCamera.position.y = 0
-    this.rtCamera.position.z = 100
-    this.rtCamera.lookAt(0, 0, 0)
-
-    this.rtScene.add(this.rtCamera)
-  }
-
   buildRender() {
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
@@ -149,6 +124,86 @@ export default class Scene {
     this.controls.enableDamping = true
   }
 
+  buildTextureScene() {
+    //Create the texture that will store our result
+    this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
+
+    this.rtScene = new THREE.Scene()
+    this.rtScene.background = new THREE.Color('blue')
+
+    this.uniforms = {
+      color1: { value: new THREE.Color(0xfa35df) },
+      color2: { value: new THREE.Color(0xf47b20) },
+      time: { value: 1.0 },
+    }
+    const geometry = new THREE.PlaneBufferGeometry(36, 20, 32)
+    const material = new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: this.uniforms,
+    })
+    const plane = new THREE.Mesh(geometry, material)
+
+    const aspectRatio = this.width / this.height
+    const fieldOfView = 10
+    const nearPlane = 1
+    const farPlane = 10000
+
+    this.rtCamera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
+    this.rtCamera.updateProjectionMatrix()
+    this.rtCamera.position.y = 0
+    this.rtCamera.position.z = 100
+    this.rtCamera.lookAt(0, 0, 0)
+
+    this.rtScene.add(this.rtCamera)
+    this.rtScene.add(plane)
+  }
+
+  buildParticles() {
+    // return
+    this.nbParticles = 200
+    this.range = 40
+
+    this.guiController = { particles_color_bkg: 0xffffff }
+
+    const material = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 10,
+      depthWrite: false,
+      depthTest: true,
+      sizeAttenuation: true,
+      transparent: true,
+      // blending: THREE.AdditiveBlending,
+      opacity: 1,
+    })
+
+    const { texture } = LoaderManager.subjects.leave1
+
+
+    material.map = texture
+    // material.color.setHex(this.guiController.particles_color_bkg)
+
+    const geometry = new THREE.Geometry()
+    const { range } = this
+
+    for (let i = 0; i < this.nbParticles; i++) {
+      const particle = new THREE.Vector3(
+        randomFloat(-range, range),
+        randomFloat(-range, range),
+        randomFloat(-range, range),
+      )
+      particle.speed = randomFloat(0.04, 0.07)
+      particle.velocityStep = randomFloat(0.00001, 0.00005)
+      particle.velocity = 0
+      geometry.vertices.push(particle)
+    }
+
+    this.geometry = geometry
+
+    this.particlesLevitate = new THREE.Points(this.geometry, material)
+    this.scene.add(this.particlesLevitate)
+  }
+
   // RAF
   render = e => {
     const { now } = e.detail
@@ -160,6 +215,25 @@ export default class Scene {
     this.renderer.setRenderTarget(this.renderTarget)
     this.renderer.render(this.rtScene, this.rtCamera)
     this.renderer.setRenderTarget(null)
+
+
+    if (this.particlesLevitate) {
+      for (let i = 0; i < this.geometry.vertices.length; i++) {
+        const particle = this.geometry.vertices[i]
+        particle.velocity += particle.velocityStep
+        particle.y -= particle.speed + particle.velocity
+        particle.x += particle.speed / 5 + particle.velocity / 5
+        if (particle.y < -this.range) {
+          particle.y = this.range
+          particle.velocity = 0
+        }
+        if (particle.x > this.range) {
+          particle.x = -this.range
+          particle.velocity = 0
+        }
+      }
+      this.geometry.verticesNeedUpdate = true
+    }
 
     this.renderer.render(this.scene, this.camera)
 
