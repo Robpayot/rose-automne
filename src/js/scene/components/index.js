@@ -192,8 +192,8 @@ export default class Scene {
         randomFloat(-range, range),
         randomFloat(-range, range),
       )
-      particle.speed = randomFloat(0.04, 0.07)
-      particle.velocityStep = randomFloat(0.00001, 0.00005)
+      particle.speed = randomFloat(0.005, 0.03)
+      particle.velocityStep = randomFloat(0.00001, 0.00003)
       particle.velocity = 0
       geometry.vertices.push(particle)
     }
