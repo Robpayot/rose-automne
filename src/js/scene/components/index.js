@@ -39,6 +39,10 @@ export default class Scene {
           name: 'leave2',
           texture: `img/leave-2.png`,
         },
+        {
+          name: 'leave3',
+          texture: `img/leave-3.png`,
+        },
       ],
       this.init,
     )
@@ -129,14 +133,15 @@ export default class Scene {
     this.renderTarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight)
 
     this.rtScene = new THREE.Scene()
-    this.rtScene.background = new THREE.Color('blue')
 
     this.uniforms = {
       color1: { value: new THREE.Color(0xfa35df) },
       color2: { value: new THREE.Color(0xf47b20) },
       time: { value: 1.0 },
     }
-    const geometry = new THREE.PlaneBufferGeometry(36, 20, 32)
+    const ratio = window.innerWidth / window.innerHeight
+    const height = 19
+    const geometry = new THREE.PlaneBufferGeometry(height * ratio, height, 32)
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -164,7 +169,6 @@ export default class Scene {
     this.nbParticles = 200
     this.range = 40
 
-    this.guiController = { particles_color_bkg: 0xffffff }
 
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
@@ -179,6 +183,7 @@ export default class Scene {
 
     const { texture } = LoaderManager.subjects.leave1
 
+    // texture.rotation = 0;
 
     material.map = texture
     // material.color.setHex(this.guiController.particles_color_bkg)
@@ -195,6 +200,7 @@ export default class Scene {
       particle.speed = randomFloat(0.005, 0.03)
       particle.velocityStep = randomFloat(0.00001, 0.00003)
       particle.velocity = 0
+      particle.offsetX = randomFloat(1, 100)
       geometry.vertices.push(particle)
     }
 
@@ -222,7 +228,9 @@ export default class Scene {
         const particle = this.geometry.vertices[i]
         particle.velocity += particle.velocityStep
         particle.y -= particle.speed + particle.velocity
-        particle.x += particle.speed / 5 + particle.velocity / 5
+        // particle.x = Math.sin(now / 1000)
+        particle.velocityX = Math.sin(now / 1000 + particle.offsetX)
+        particle.x += (particle.velocityX / 20)
         if (particle.y < -this.range) {
           particle.y = this.range
           particle.velocity = 0
