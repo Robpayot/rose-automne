@@ -27,10 +27,6 @@ export default class Scene {
     LoaderManager.load(
       [
         {
-          name: 'image',
-          texture: `img/social.png`,
-        },
-        {
           name: 'leave1',
           texture: `img/leave-1.png`,
         },
