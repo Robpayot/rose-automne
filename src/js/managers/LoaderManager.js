@@ -1,5 +1,3 @@
-import '../scene/vendor/three/GLTFLoader'
-import '../scene/vendor/three/DRACOLoader'
 import * as THREE from 'three';
 
 class LoaderManager {
@@ -7,20 +5,14 @@ class LoaderManager {
     this.subjects = {}
 
     this.textureLoader = new THREE.TextureLoader()
-    this.GLTFLoader = new THREE.GLTFLoader()
-    this.DRACOLoader = new THREE.DRACOLoader()
   }
 
   load = (objects, callback) => {
     const promises = []
     for (let i = 0; i < objects.length; i++) {
-      const { name, gltf, texture, img } = objects[i]
+      const { name, texture, img } = objects[i]
 
       this.subjects[name] = {}
-
-      if (gltf) {
-        promises.push(this.loadGLTF(gltf, name))
-      }
 
       if (texture) {
         promises.push(this.loadTexture(texture, name))
@@ -32,31 +24,6 @@ class LoaderManager {
     }
 
     Promise.all(promises).then(callback)
-  }
-
-  loadFBX(url, name) {
-    return new Promise(resolve => {
-      this.FBXLoader.load(url, result => {
-        this.subjects[name].fbx = result
-        resolve(result)
-      }, undefined, e => {
-        console.log(e)
-      })
-    })
-  }
-
-  loadGLTF(url, name) {
-    return new Promise(resolve => {
-      this.DRACOLoader.setDecoderPath('../scene/vendor/three/draco/')
-      this.GLTFLoader.setDRACOLoader(this.DRACOLoader)
-
-      this.GLTFLoader.load(url, result => {
-        this.subjects[name].gltf = result
-        resolve(result)
-      }, undefined, e => {
-        console.log(e)
-      })
-    })
   }
 
   loadTexture(url, name) {
