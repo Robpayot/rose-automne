@@ -13,7 +13,6 @@ import { RAF, WINDOW_RESIZE, MOUSE_MOVE, DEBUG, SCROLL, START_SCENE } from '../.
 import fragmentShader from '../shaders/custom.frag'
 import vertexShader from '../shaders/custom.vert'
 
-
 export default class Scene {
   constructor(el) {
     this.canvas = el
@@ -56,6 +55,7 @@ export default class Scene {
     this.buildCamera()
     this.buildControls()
     this.buildParticles()
+    this.buildText()
 
     this.initGUI()
 
@@ -135,8 +135,8 @@ export default class Scene {
     this.rtScene = new THREE.Scene()
 
     this.uniforms = {
-      color1: { value: new THREE.Color(0xfa35df) },
-      color2: { value: new THREE.Color(0xf47b20) },
+      color1: { value: new THREE.Color(0xfa35df) }, // pink
+      color2: { value: new THREE.Color(0xf47b20) }, // orange
       time: { value: 1.0 },
     }
     const ratio = window.innerWidth / window.innerHeight
@@ -168,7 +168,6 @@ export default class Scene {
     // return
     this.nbParticles = 200
     this.range = 40
-
 
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
@@ -210,6 +209,44 @@ export default class Scene {
     this.scene.add(this.particlesLevitate)
   }
 
+  buildText() {
+    const loader = new THREE.FontLoader()
+
+    loader.load('img/parisienne.json', font => {
+      let geometry = new THREE.TextGeometry('Rose & Automne', {
+        font,
+        size: 80,
+        height: 3,
+        curveSegments: 12,
+        bevelEnabled: true,
+        bevelThickness: 5,
+        bevelSize: 3,
+        bevelOffset: 0,
+        bevelSegments: 5,
+      })
+
+      geometry = new THREE.BufferGeometry().fromGeometry(geometry)
+      geometry.center()
+
+      const material = new THREE.MeshBasicMaterial({color: 0x000000})
+      // material.map = this.renderTarget.texture
+
+      const mesh = new THREE.Mesh(geometry, material)
+
+      mesh.position.y = 0
+      mesh.position.z = 0
+
+      mesh.rotation.x = 0
+      mesh.rotation.y = Math.PI * 2
+
+      const scaleCoef = 0.02
+
+      mesh.scale.set(scaleCoef, scaleCoef, scaleCoef)
+
+      this.scene.add(mesh)
+    })
+  }
+
   // RAF
   render = e => {
     const { now } = e.detail
@@ -222,7 +259,6 @@ export default class Scene {
     this.renderer.render(this.rtScene, this.rtCamera)
     this.renderer.setRenderTarget(null)
 
-
     if (this.particlesLevitate) {
       for (let i = 0; i < this.geometry.vertices.length; i++) {
         const particle = this.geometry.vertices[i]
@@ -230,7 +266,7 @@ export default class Scene {
         particle.y -= particle.speed + particle.velocity
         // particle.x = Math.sin(now / 1000)
         particle.velocityX = Math.sin(now / 1000 + particle.offsetX)
-        particle.x += (particle.velocityX / 20)
+        particle.x += particle.velocityX / 20
         if (particle.y < -this.range) {
           particle.y = this.range
           particle.velocity = 0
@@ -251,18 +287,6 @@ export default class Scene {
   }
 
   // EVENTS
-
-  handleMouseMove = e => {
-    const x = (e.clientX / window.innerWidth) * 2 - 1
-    const y = -(e.clientY / window.innerHeight) * 2 + 1
-
-    window.dispatchEvent(createCustomEvent(MOUSE_MOVE, { x, y }))
-  }
-
-  handleScroll = () => {
-    window.dispatchEvent(createCustomEvent(SCROLL, { scrollY: window.scrollY, maxHeight: this.maxHeight }))
-  }
-
   handleResize = () => {
     this.setUnits()
 
@@ -280,7 +304,7 @@ export default class Scene {
     // } else {
     //   this.renderer.setPixelRatio(DPR)
     // }
-    this.renderer.setPixelRatio(DPR)
+    // this.renderer.setPixelRatio(DPR)
     this.renderer.setSize(this.width, this.height)
   }
 
