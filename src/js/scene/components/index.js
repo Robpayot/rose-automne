@@ -17,6 +17,8 @@ export default class Scene {
   constructor(el) {
     this.canvas = el
 
+    this.particlesGroup = []
+
     this.setUnits()
 
     this.load()
@@ -50,8 +52,23 @@ export default class Scene {
     this.buildRender()
     this.buildCamera()
     this.buildControls()
-    this.buildParticles()
+    for (let i = 0; i < 3; i++) {
+      let texture
+      switch (i) {
+        case 0:
+          texture = LoaderManager.subjects.leave1.texture
+          break
+        case 1:
+          texture = LoaderManager.subjects.leave2.texture
+          break
+        case 2:
+          texture = LoaderManager.subjects.leave3.texture
+          break
+      }
+      this.buildParticles(texture)
+    }
     this.buildText()
+    this.buildLight()
 
     this.initGUI()
 
@@ -63,13 +80,16 @@ export default class Scene {
   initGUI() {
     // gui
     this.guiController = {
-      amplitude: 0.1,
+      rose: 0xd096d6,
     }
 
-    GUI.add(this.guiController, 'amplitude', 0.01, 1.0).onChange(this.guiChange)
+    GUI.addColor(this.guiController, 'rose').onChange(this.guiChange)
   }
 
-  guiChange = () => {}
+  guiChange = () => {
+
+    this.uniforms.color1.value.setHex(this.guiController.rose)
+  }
 
   events() {
     window.addEventListener(WINDOW_RESIZE, this.handleResize, { passive: true })
@@ -103,14 +123,14 @@ export default class Scene {
 
   buildCamera() {
     const aspectRatio = this.width / this.height
-    const fieldOfView = 10
+    const fieldOfView = 30
     const nearPlane = 1
     const farPlane = 10000
 
     this.camera = new THREE.PerspectiveCamera(fieldOfView, aspectRatio, nearPlane, farPlane)
     this.camera.updateProjectionMatrix()
     this.camera.position.y = 0
-    this.camera.position.z = 100
+    this.camera.position.z = 500
     this.camera.lookAt(0, 0, 0)
 
     this.scene.add(this.camera)
@@ -121,6 +141,7 @@ export default class Scene {
 
   buildControls() {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
+    // this.controls.autoRotate = true
     this.controls.enableDamping = true
   }
 
@@ -131,7 +152,7 @@ export default class Scene {
     this.rtScene = new THREE.Scene()
 
     this.uniforms = {
-      color1: { value: new THREE.Color(0xfa35df) }, // pink
+      color1: { value: new THREE.Color(0xd096d6) }, // pink  0xfa35df
       color2: { value: new THREE.Color(0xf47b20) }, // orange
       time: { value: 1.0 },
     }
@@ -160,14 +181,14 @@ export default class Scene {
     this.rtScene.add(plane)
   }
 
-  buildParticles() {
+  buildParticles(texture) {
     // return
-    this.nbParticles = 200
-    this.range = 40
+    this.nbParticles = 100
+    this.range = 350
 
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
-      size: 10,
+      size: 60,
       depthWrite: false,
       depthTest: true,
       sizeAttenuation: true,
@@ -175,8 +196,6 @@ export default class Scene {
       // blending: THREE.AdditiveBlending,
       opacity: 1,
     })
-
-    const { texture } = LoaderManager.subjects.leave1
 
     // texture.rotation = 0;
 
@@ -192,17 +211,17 @@ export default class Scene {
         randomFloat(-range, range),
         randomFloat(-range, range),
       )
-      particle.speed = randomFloat(0.005, 0.03)
-      particle.velocityStep = randomFloat(0.00001, 0.00003)
+      particle.speed = randomFloat(0.2, 0.6)
+      particle.velocityStep = randomFloat(0.00006, 0.00018)
       particle.velocity = 0
-      particle.offsetX = randomFloat(1, 100)
+      particle.offsetX = randomFloat(100, 600)
       geometry.vertices.push(particle)
     }
 
-    this.geometry = geometry
+    const particles = new THREE.Points(geometry, material)
+    this.scene.add(particles)
 
-    this.particlesLevitate = new THREE.Points(this.geometry, material)
-    this.scene.add(this.particlesLevitate)
+    this.particlesGroup.push(particles)
   }
 
   buildText() {
@@ -212,19 +231,19 @@ export default class Scene {
       let geometry = new THREE.TextGeometry('Rose & Automne', {
         font,
         size: 80,
-        height: 3,
+        height: 1,
         curveSegments: 12,
         bevelEnabled: true,
-        bevelThickness: 5,
-        bevelSize: 3,
+        bevelThickness: 3,
+        bevelSize: 1,
         bevelOffset: 0,
-        bevelSegments: 5,
+        bevelSegments: 2,
       })
 
       geometry = new THREE.BufferGeometry().fromGeometry(geometry)
       geometry.center()
 
-      const material = new THREE.MeshBasicMaterial({color: 0x000000})
+      const material = new THREE.MeshBasicMaterial({ color: 0xffffff })
       // material.map = this.renderTarget.texture
 
       const mesh = new THREE.Mesh(geometry, material)
@@ -235,12 +254,26 @@ export default class Scene {
       mesh.rotation.x = 0
       mesh.rotation.y = Math.PI * 2
 
-      const scaleCoef = 0.02
+      const scaleCoef = 0.3
 
       mesh.scale.set(scaleCoef, scaleCoef, scaleCoef)
 
       this.scene.add(mesh)
     })
+  }
+
+  buildLight() {
+    // const light = new THREE.AmbientLight( 0xffffff ); // soft white light
+    // this.scene.add( light );
+    // const pointlight = new THREE.PointLight( 0xffffff, 1, 100 );
+    // pointlight.position.set( 10, 10, 10 );
+    // this.scene.add(pointlight)
+    // const pointlight2 = new THREE.PointLight( 0xffffff, 1, 100 );
+    // pointlight2.position.set( 10, 10, -10 );
+    // this.scene.add(pointlight2)
+    // const light2 = new THREE.PointLight( 0xfa35df, 1, 100 );
+    // light2.position.set( 10, 5, 5 );
+    // this.scene.add(light2)
   }
 
   // RAF
@@ -255,14 +288,15 @@ export default class Scene {
     this.renderer.render(this.rtScene, this.rtCamera)
     this.renderer.setRenderTarget(null)
 
-    if (this.particlesLevitate) {
-      for (let i = 0; i < this.geometry.vertices.length; i++) {
-        const particle = this.geometry.vertices[i]
+    for (let y = 0; y < this.particlesGroup.length; y++) {
+      const { geometry } = this.particlesGroup[y]
+
+      for (let i = 0; i < geometry.vertices.length; i++) {
+        const particle = geometry.vertices[i]
         particle.velocity += particle.velocityStep
         particle.y -= particle.speed + particle.velocity
-        // particle.x = Math.sin(now / 1000)
-        particle.velocityX = Math.sin(now / 1000 + particle.offsetX)
-        particle.x += particle.velocityX / 20
+        particle.velocityX = Math.sin(now / 500 + particle.offsetX)
+        particle.x += particle.velocityX / 8
         if (particle.y < -this.range) {
           particle.y = this.range
           particle.velocity = 0
@@ -272,7 +306,7 @@ export default class Scene {
           particle.velocity = 0
         }
       }
-      this.geometry.verticesNeedUpdate = true
+      geometry.verticesNeedUpdate = true
     }
 
     this.renderer.render(this.scene, this.camera)
@@ -300,7 +334,7 @@ export default class Scene {
     // } else {
     //   this.renderer.setPixelRatio(DPR)
     // }
-    // this.renderer.setPixelRatio(DPR)
+    this.renderer.setPixelRatio(1)
     this.renderer.setSize(this.width, this.height)
   }
 
