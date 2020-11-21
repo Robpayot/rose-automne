@@ -9,9 +9,11 @@ import LoaderManager from '../../managers/LoaderManager'
 
 // components
 
-import { RAF, WINDOW_RESIZE, MOUSE_MOVE, DEBUG, SCROLL, START_SCENE } from '../../constants/index'
+import { RAF, WINDOW_RESIZE, START_SCENE } from '../../constants/index'
 import fragmentShader from '../shaders/custom.frag'
 import vertexShader from '../shaders/custom.vert'
+import fragmentParticlesShader from '../shaders/customPointsMaterial.frag'
+import vertexParticlesShader from '../shaders/customPointsMaterial.vert'
 
 export default class Scene {
   constructor(el) {
@@ -22,7 +24,6 @@ export default class Scene {
     this.setUnits()
 
     this.load()
-    // this.init()
   }
 
   load() {
@@ -57,6 +58,7 @@ export default class Scene {
       switch (i) {
         case 0:
           texture = LoaderManager.subjects.leave1.texture
+          this.buildParticles(texture)
           break
         case 1:
           texture = LoaderManager.subjects.leave2.texture
@@ -65,10 +67,9 @@ export default class Scene {
           texture = LoaderManager.subjects.leave3.texture
           break
       }
-      this.buildParticles(texture)
+
     }
     this.buildText()
-    this.buildLight()
 
     this.initGUI()
 
@@ -87,15 +88,12 @@ export default class Scene {
   }
 
   guiChange = () => {
-
     this.uniforms.color1.value.setHex(this.guiController.rose)
   }
 
   events() {
     window.addEventListener(WINDOW_RESIZE, this.handleResize, { passive: true })
     window.addEventListener(RAF, this.render, { passive: true })
-    // window.addEventListener('mousemove', this.handleMouseMove)
-    // window.addEventListener('scroll', this.handleScroll)
   }
 
   buildStats() {
@@ -186,6 +184,24 @@ export default class Scene {
     this.nbParticles = 100
     this.range = 350
 
+    // const uniforms = {
+    //   textures: {
+    //     type: 'tv',
+    //     value: [
+    //       LoaderManager.subjects.leave1.texture,
+    //       LoaderManager.subjects.leave2.texture,
+    //       LoaderManager.subjects.leave3.texture,
+    //     ],
+    //   },
+    // }
+
+    // const material = new THREE.ShaderMaterial({
+    //   uniforms,
+    //   vertexShader: vertexParticlesShader,
+    //   fragmentShader: fragmentParticlesShader,
+    //   transparent: true,
+    // })
+
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
       size: 60,
@@ -197,10 +213,9 @@ export default class Scene {
       opacity: 1,
     })
 
-    // texture.rotation = 0;
+    // // texture.rotation = 0;
 
     material.map = texture
-    // material.color.setHex(this.guiController.particles_color_bkg)
 
     const geometry = new THREE.Geometry()
     const { range } = this
@@ -218,10 +233,50 @@ export default class Scene {
       geometry.vertices.push(particle)
     }
 
+    // const bufferGeometry = new THREE.BufferGeometry().fromGeometry(geometry)
+
+    // const texIndex = new Float32Array(bufferGeometry.attributes.position.count)
+
+    // for (let i = 0; i < this.nbParticles; i++) {
+    //   texIndex[i] = (Math.random() * uniforms.textures.value.length) | 0
+    // }
+
+    // bufferGeometry.setAttribute('texIndex', new THREE.BufferAttribute(texIndex, 1))
+
+
+    // particles.sortParticles = true
+
+    // this.particlesGroup.push(particles)
+
+    // add atribute to the buffer geometry
+    // const numVertices = bufferGeometry.attributes.position.count
+    // const alphaOffsets = new Float32Array(numVertices) // 1 values per vertex
+    // const alphaSpeeds = new Float32Array(numVertices)
+
+    // for (let i = 0; i < numVertices; i++) {
+    //   // set alphaOffset randomly
+    //   alphaOffsets[i] = randomFloat(0, 1000) // alpha between 0.2 & 1
+    //   alphaSpeeds[i] = randomFloat(0.5, 2)
+    // }
+
+    // bufferGeometry.setAttribute('alphaOffset', new THREE.BufferAttribute(alphaOffsets, 1))
+    // bufferGeometry.setAttribute('alphaSpeed', new THREE.BufferAttribute(alphaSpeeds, 1))
+    // material.userData.time = { value: 0.0 }
+
+    // Override PointsMaterial with a custom one
+    material.onBeforeCompile = shader => {
+      // shader.uniforms.time = material.userData.time
+      // pass this input by reference
+
+      // prepend the input to the vertex shader
+      shader.vertexShader = vertexParticlesShader
+
+      // //prepend the input to the shader
+      shader.fragmentShader = fragmentParticlesShader
+    }
+
     const particles = new THREE.Points(geometry, material)
     this.scene.add(particles)
-
-    this.particlesGroup.push(particles)
   }
 
   buildText() {
@@ -262,20 +317,6 @@ export default class Scene {
     })
   }
 
-  buildLight() {
-    // const light = new THREE.AmbientLight( 0xffffff ); // soft white light
-    // this.scene.add( light );
-    // const pointlight = new THREE.PointLight( 0xffffff, 1, 100 );
-    // pointlight.position.set( 10, 10, 10 );
-    // this.scene.add(pointlight)
-    // const pointlight2 = new THREE.PointLight( 0xffffff, 1, 100 );
-    // pointlight2.position.set( 10, 10, -10 );
-    // this.scene.add(pointlight2)
-    // const light2 = new THREE.PointLight( 0xfa35df, 1, 100 );
-    // light2.position.set( 10, 5, 5 );
-    // this.scene.add(light2)
-  }
-
   // RAF
   render = e => {
     const { now } = e.detail
@@ -307,6 +348,8 @@ export default class Scene {
         }
       }
       geometry.verticesNeedUpdate = true
+
+      this.sortPoints(this.particlesGroup[y])
     }
 
     this.renderer.render(this.scene, this.camera)
@@ -342,4 +385,196 @@ export default class Scene {
     this.width = window.innerWidth
     this.height = window.innerHeight
   }
+
+  sortPoints(mesh) {
+    return
+    const vector = new THREE.Vector3()
+
+    // Model View Projection matrix
+
+    const matrix = new THREE.Matrix4()
+    matrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
+    matrix.multiply(mesh.matrixWorld)
+
+    //
+
+    const geometry = mesh.geometry
+
+    console.log(geometry)
+
+    let index = geometry.getIndex()
+    const positions = geometry.getAttribute('position').array
+    const length = positions.length / 3
+
+    if (index === null) {
+      const array = new Uint16Array(length)
+
+      for (let i = 0; i < length; i++) {
+        array[i] = i
+      }
+
+      index = new THREE.BufferAttribute(array, 1)
+
+      geometry.setIndex(index)
+    }
+
+    const sortArray = []
+
+    for (let i = 0; i < length; i++) {
+      vector.fromArray(positions, i * 3)
+      vector.applyMatrix4(matrix)
+
+      sortArray.push([vector.z, i])
+    }
+
+    function numericalSort(a, b) {
+      return b[0] - a[0]
+    }
+
+    sortArray.sort(numericalSort)
+
+    const indices = index.array
+
+    for (let i = 0; i < length; i++) {
+      indices[i] = sortArray[i][1]
+    }
+
+    geometry.index.needsUpdate = true
+  }
 }
+
+///////
+//////
+///////
+
+////////
+
+// import * as THREE from '../build/three.module.js'
+
+// import Stats from './jsm/libs/stats.module.js'
+
+// let renderer, scene, camera, stats
+// let sphere, length1
+
+// const WIDTH = window.innerWidth
+// const HEIGHT = window.innerHeight
+
+// init()
+// animate()
+
+// function init() {
+//   camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, 1, 10000)
+//   camera.position.z = 300
+
+//   scene = new THREE.Scene()
+
+//   const radius = 100,
+//     segments = 68,
+//     rings = 38
+
+//   const vertices1 = new THREE.SphereGeometry(radius, segments, rings).vertices
+//   const vertices2 = new THREE.BoxGeometry(0.8 * radius, 0.8 * radius, 0.8 * radius, 10, 10, 10).vertices
+
+//   length1 = vertices1.length
+
+//   const vertices = vertices1.concat(vertices2)
+
+//   const positions = new Float32Array(vertices.length * 3)
+//   const colors = new Float32Array(vertices.length * 3)
+//   const sizes = new Float32Array(vertices.length)
+
+//   const color = new THREE.Color()
+
+//   for (let i = 0, l = vertices.length; i < l; i++) {
+//     const vertex = vertices[i]
+//     vertex.toArray(positions, i * 3)
+
+//     if (i < length1) {
+//       color.setHSL(0.01 + 0.1 * (i / length1), 0.99, (vertex.y + radius) / (4 * radius))
+//     } else {
+//       color.setHSL(0.6, 0.75, 0.25 + vertex.y / (2 * radius))
+//     }
+
+//     color.toArray(colors, i * 3)
+
+//     sizes[i] = i < length1 ? 10 : 40
+//   }
+
+//   const geometry = new THREE.BufferGeometry()
+//   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+//   geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+//   geometry.setAttribute('ca', new THREE.BufferAttribute(colors, 3))
+
+//   //
+
+//   const texture = new THREE.TextureLoader().load('textures/sprites/disc.png')
+//   texture.wrapS = THREE.RepeatWrapping
+//   texture.wrapT = THREE.RepeatWrapping
+
+//   const material = new THREE.ShaderMaterial({
+//     uniforms: {
+//       color: { value: new THREE.Color(0xffffff) },
+//       pointTexture: { value: texture },
+//     },
+//     vertexShader: document.getElementById('vertexshader').textContent,
+//     fragmentShader: document.getElementById('fragmentshader').textContent,
+//     transparent: true,
+//   })
+
+//   //
+
+//   sphere = new THREE.Points(geometry, material)
+//   scene.add(sphere)
+
+//   //
+
+//   renderer = new THREE.WebGLRenderer()
+//   renderer.setPixelRatio(window.devicePixelRatio)
+//   renderer.setSize(WIDTH, HEIGHT)
+
+//   const container = document.getElementById('container')
+//   container.appendChild(renderer.domElement)
+
+//   stats = new Stats()
+//   container.appendChild(stats.dom)
+
+//   //
+
+//   window.addEventListener('resize', onWindowResize, false)
+// }
+
+// function onWindowResize() {
+//   camera.aspect = window.innerWidth / window.innerHeight
+//   camera.updateProjectionMatrix()
+
+//   renderer.setSize(window.innerWidth, window.innerHeight)
+// }
+
+// function animate() {
+//   requestAnimationFrame(animate)
+
+//   render()
+//   stats.update()
+// }
+
+// function render() {
+//   const time = Date.now() * 0.005
+
+//   sphere.rotation.y = 0.02 * time
+//   sphere.rotation.z = 0.02 * time
+
+//   const geometry = sphere.geometry
+//   const attributes = geometry.attributes
+
+//   for (let i = 0; i < attributes.size.array.length; i++) {
+//     if (i < length1) {
+//       attributes.size.array[i] = 16 + 12 * Math.sin(0.1 * i + time)
+//     }
+//   }
+
+//   attributes.size.needsUpdate = true
+
+//   sortPoints()
+
+//   renderer.render(scene, camera)
+// }
