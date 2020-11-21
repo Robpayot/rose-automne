@@ -1,5 +1,8 @@
 uniform float size;
 uniform float scale;
+attribute float textureIndex;
+varying float vTextureIndex;
+
 #include <common>
 #include <color_pars_vertex>
 #include <fog_pars_vertex>
@@ -21,4 +24,6 @@ void main() {
 	#include <clipping_planes_vertex>
 	#include <worldpos_vertex>
 	#include <fog_vertex>
+
+	vTextureIndex = textureIndex;
 }

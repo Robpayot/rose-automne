@@ -53,22 +53,7 @@ export default class Scene {
     this.buildRender()
     this.buildCamera()
     this.buildControls()
-    for (let i = 0; i < 3; i++) {
-      let texture
-      switch (i) {
-        case 0:
-          texture = LoaderManager.subjects.leave1.texture
-          this.buildParticles(texture)
-          break
-        case 1:
-          texture = LoaderManager.subjects.leave2.texture
-          break
-        case 2:
-          texture = LoaderManager.subjects.leave3.texture
-          break
-      }
-
-    }
+    this.buildParticles()
     this.buildText()
 
     this.initGUI()
@@ -181,26 +166,19 @@ export default class Scene {
 
   buildParticles(texture) {
     // return
-    this.nbParticles = 100
+    this.nbParticles = 300
     this.range = 350
 
-    // const uniforms = {
-    //   textures: {
-    //     type: 'tv',
-    //     value: [
-    //       LoaderManager.subjects.leave1.texture,
-    //       LoaderManager.subjects.leave2.texture,
-    //       LoaderManager.subjects.leave3.texture,
-    //     ],
-    //   },
-    // }
-
-    // const material = new THREE.ShaderMaterial({
-    //   uniforms,
-    //   vertexShader: vertexParticlesShader,
-    //   fragmentShader: fragmentParticlesShader,
-    //   transparent: true,
-    // })
+    const uniforms = {
+      textures: {
+        type: 'tv',
+        value: [
+          LoaderManager.subjects.leave1.texture,
+          LoaderManager.subjects.leave2.texture,
+          LoaderManager.subjects.leave3.texture,
+        ],
+      },
+    }
 
     const material = new THREE.PointsMaterial({
       color: 0xffffff,
@@ -233,39 +211,28 @@ export default class Scene {
       geometry.vertices.push(particle)
     }
 
-    // const bufferGeometry = new THREE.BufferGeometry().fromGeometry(geometry)
+    // create particles
 
-    // const texIndex = new Float32Array(bufferGeometry.attributes.position.count)
+    var vertices = []
+    const textureIndex = []
 
-    // for (let i = 0; i < this.nbParticles; i++) {
-    //   texIndex[i] = (Math.random() * uniforms.textures.value.length) | 0
-    // }
+    for (var i = 0; i < this.nbParticles; i++) {
+      var x = randomFloat(-range, range)
+      var y = randomFloat(-range, range)
+      var z = randomFloat(-range, range)
 
-    // bufferGeometry.setAttribute('texIndex', new THREE.BufferAttribute(texIndex, 1))
+      textureIndex.push((Math.random() * 3) | 0)
 
+      vertices.push(x, y, z)
+    }
 
-    // particles.sortParticles = true
-
-    // this.particlesGroup.push(particles)
-
-    // add atribute to the buffer geometry
-    // const numVertices = bufferGeometry.attributes.position.count
-    // const alphaOffsets = new Float32Array(numVertices) // 1 values per vertex
-    // const alphaSpeeds = new Float32Array(numVertices)
-
-    // for (let i = 0; i < numVertices; i++) {
-    //   // set alphaOffset randomly
-    //   alphaOffsets[i] = randomFloat(0, 1000) // alpha between 0.2 & 1
-    //   alphaSpeeds[i] = randomFloat(0.5, 2)
-    // }
-
-    // bufferGeometry.setAttribute('alphaOffset', new THREE.BufferAttribute(alphaOffsets, 1))
-    // bufferGeometry.setAttribute('alphaSpeed', new THREE.BufferAttribute(alphaSpeeds, 1))
-    // material.userData.time = { value: 0.0 }
+    var bufferGeometry = new THREE.BufferGeometry()
+    bufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+    bufferGeometry.setAttribute('textureIndex', new THREE.Float32BufferAttribute(textureIndex, 1))
 
     // Override PointsMaterial with a custom one
     material.onBeforeCompile = shader => {
-      // shader.uniforms.time = material.userData.time
+      shader.uniforms.textures = uniforms.textures
       // pass this input by reference
 
       // prepend the input to the vertex shader
@@ -275,8 +242,8 @@ export default class Scene {
       shader.fragmentShader = fragmentParticlesShader
     }
 
-    const particles = new THREE.Points(geometry, material)
-    this.scene.add(particles)
+    this.particles = new THREE.Points(bufferGeometry, material)
+    this.scene.add(this.particles)
   }
 
   buildText() {
@@ -329,27 +296,28 @@ export default class Scene {
     this.renderer.render(this.rtScene, this.rtCamera)
     this.renderer.setRenderTarget(null)
 
-    for (let y = 0; y < this.particlesGroup.length; y++) {
-      const { geometry } = this.particlesGroup[y]
+    if (this.particles) {
+      // const { geometry } = this.particlesGroup[y]
 
-      for (let i = 0; i < geometry.vertices.length; i++) {
-        const particle = geometry.vertices[i]
-        particle.velocity += particle.velocityStep
-        particle.y -= particle.speed + particle.velocity
-        particle.velocityX = Math.sin(now / 500 + particle.offsetX)
-        particle.x += particle.velocityX / 8
-        if (particle.y < -this.range) {
-          particle.y = this.range
-          particle.velocity = 0
-        }
-        if (particle.x > this.range) {
-          particle.x = -this.range
-          particle.velocity = 0
-        }
-      }
-      geometry.verticesNeedUpdate = true
+      // for (let i = 0; i < geometry.vertices.length; i++) {
+      //   const particle = geometry.vertices[i]
+      //   particle.velocity += particle.velocityStep
+      //   particle.y -= particle.speed + particle.velocity
+      //   particle.velocityX = Math.sin(now / 500 + particle.offsetX)
+      //   particle.x += particle.velocityX / 8
+      //   if (particle.y < -this.range) {
+      //     particle.y = this.range
+      //     particle.velocity = 0
+      //   }
+      //   if (particle.x > this.range) {
+      //     particle.x = -this.range
+      //     particle.velocity = 0
+      //   }
+      // }
+      // geometry.verticesNeedUpdate = true
+      // console.log('laa')
 
-      this.sortPoints(this.particlesGroup[y])
+      this.sortPoints(this.particles)
     }
 
     this.renderer.render(this.scene, this.camera)
@@ -387,7 +355,6 @@ export default class Scene {
   }
 
   sortPoints(mesh) {
-    return
     const vector = new THREE.Vector3()
 
     // Model View Projection matrix
@@ -396,11 +363,7 @@ export default class Scene {
     matrix.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse)
     matrix.multiply(mesh.matrixWorld)
 
-    //
-
     const geometry = mesh.geometry
-
-    console.log(geometry)
 
     let index = geometry.getIndex()
     const positions = geometry.getAttribute('position').array
