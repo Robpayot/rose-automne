@@ -213,8 +213,12 @@ export default class Scene {
 
     // create particles
 
-    var vertices = []
+    const vertices = []
     const textureIndex = []
+    const speed = []
+    const velocityStep = []
+    const velocity = [];
+    const offsetX = []
 
     for (var i = 0; i < this.nbParticles; i++) {
       var x = randomFloat(-range, range)
@@ -222,6 +226,10 @@ export default class Scene {
       var z = randomFloat(-range, range)
 
       textureIndex.push((Math.random() * 3) | 0)
+      speed.push(randomFloat(0.2, 0.6))
+      velocityStep.push(randomFloat(0.00006, 0.00018))
+      velocity.push(0)
+      offsetX.push(randomFloat(100, 600))
 
       vertices.push(x, y, z)
     }
@@ -229,6 +237,10 @@ export default class Scene {
     var bufferGeometry = new THREE.BufferGeometry()
     bufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
     bufferGeometry.setAttribute('textureIndex', new THREE.Float32BufferAttribute(textureIndex, 1))
+    bufferGeometry.setAttribute('speed', new THREE.Float32BufferAttribute(speed, 1))
+    bufferGeometry.setAttribute('velocityStep', new THREE.Float32BufferAttribute(velocityStep, 1))
+    bufferGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocity, 1))
+    bufferGeometry.setAttribute('offsetX', new THREE.Float32BufferAttribute(offsetX, 1))
 
     // Override PointsMaterial with a custom one
     material.onBeforeCompile = shader => {
@@ -244,6 +256,7 @@ export default class Scene {
 
     this.particles = new THREE.Points(bufferGeometry, material)
     this.scene.add(this.particles)
+    console.log(this.particles)
   }
 
   buildText() {
@@ -315,7 +328,6 @@ export default class Scene {
       //   }
       // }
       // geometry.verticesNeedUpdate = true
-      // console.log('laa')
 
       this.sortPoints(this.particles)
     }
@@ -405,139 +417,3 @@ export default class Scene {
     geometry.index.needsUpdate = true
   }
 }
-
-///////
-//////
-///////
-
-////////
-
-// import * as THREE from '../build/three.module.js'
-
-// import Stats from './jsm/libs/stats.module.js'
-
-// let renderer, scene, camera, stats
-// let sphere, length1
-
-// const WIDTH = window.innerWidth
-// const HEIGHT = window.innerHeight
-
-// init()
-// animate()
-
-// function init() {
-//   camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, 1, 10000)
-//   camera.position.z = 300
-
-//   scene = new THREE.Scene()
-
-//   const radius = 100,
-//     segments = 68,
-//     rings = 38
-
-//   const vertices1 = new THREE.SphereGeometry(radius, segments, rings).vertices
-//   const vertices2 = new THREE.BoxGeometry(0.8 * radius, 0.8 * radius, 0.8 * radius, 10, 10, 10).vertices
-
-//   length1 = vertices1.length
-
-//   const vertices = vertices1.concat(vertices2)
-
-//   const positions = new Float32Array(vertices.length * 3)
-//   const colors = new Float32Array(vertices.length * 3)
-//   const sizes = new Float32Array(vertices.length)
-
-//   const color = new THREE.Color()
-
-//   for (let i = 0, l = vertices.length; i < l; i++) {
-//     const vertex = vertices[i]
-//     vertex.toArray(positions, i * 3)
-
-//     if (i < length1) {
-//       color.setHSL(0.01 + 0.1 * (i / length1), 0.99, (vertex.y + radius) / (4 * radius))
-//     } else {
-//       color.setHSL(0.6, 0.75, 0.25 + vertex.y / (2 * radius))
-//     }
-
-//     color.toArray(colors, i * 3)
-
-//     sizes[i] = i < length1 ? 10 : 40
-//   }
-
-//   const geometry = new THREE.BufferGeometry()
-//   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-//   geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
-//   geometry.setAttribute('ca', new THREE.BufferAttribute(colors, 3))
-
-//   //
-
-//   const texture = new THREE.TextureLoader().load('textures/sprites/disc.png')
-//   texture.wrapS = THREE.RepeatWrapping
-//   texture.wrapT = THREE.RepeatWrapping
-
-//   const material = new THREE.ShaderMaterial({
-//     uniforms: {
-//       color: { value: new THREE.Color(0xffffff) },
-//       pointTexture: { value: texture },
-//     },
-//     vertexShader: document.getElementById('vertexshader').textContent,
-//     fragmentShader: document.getElementById('fragmentshader').textContent,
-//     transparent: true,
-//   })
-
-//   //
-
-//   sphere = new THREE.Points(geometry, material)
-//   scene.add(sphere)
-
-//   //
-
-//   renderer = new THREE.WebGLRenderer()
-//   renderer.setPixelRatio(window.devicePixelRatio)
-//   renderer.setSize(WIDTH, HEIGHT)
-
-//   const container = document.getElementById('container')
-//   container.appendChild(renderer.domElement)
-
-//   stats = new Stats()
-//   container.appendChild(stats.dom)
-
-//   //
-
-//   window.addEventListener('resize', onWindowResize, false)
-// }
-
-// function onWindowResize() {
-//   camera.aspect = window.innerWidth / window.innerHeight
-//   camera.updateProjectionMatrix()
-
-//   renderer.setSize(window.innerWidth, window.innerHeight)
-// }
-
-// function animate() {
-//   requestAnimationFrame(animate)
-
-//   render()
-//   stats.update()
-// }
-
-// function render() {
-//   const time = Date.now() * 0.005
-
-//   sphere.rotation.y = 0.02 * time
-//   sphere.rotation.z = 0.02 * time
-
-//   const geometry = sphere.geometry
-//   const attributes = geometry.attributes
-
-//   for (let i = 0; i < attributes.size.array.length; i++) {
-//     if (i < length1) {
-//       attributes.size.array[i] = 16 + 12 * Math.sin(0.1 * i + time)
-//     }
-//   }
-
-//   attributes.size.needsUpdate = true
-
-//   sortPoints()
-
-//   renderer.render(scene, camera)
-// }
