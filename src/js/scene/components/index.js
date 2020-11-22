@@ -117,14 +117,11 @@ export default class Scene {
     this.camera.lookAt(0, 0, 0)
 
     this.scene.add(this.camera)
-
-    // scene.add( camera );
-    // CameraController.init(this.camera, this.scene)
   }
 
   buildControls() {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
-    // this.controls.autoRotate = true
+    this.controls.autoRotate = true
     this.controls.enableDamping = true
   }
 
@@ -164,7 +161,7 @@ export default class Scene {
     this.rtScene.add(plane)
   }
 
-  buildParticles(texture) {
+  buildParticles() {
     // return
     this.nbParticles = 300
     this.range = 350
@@ -191,56 +188,36 @@ export default class Scene {
       opacity: 1,
     })
 
-    // // texture.rotation = 0;
-
-    material.map = texture
-
-    const geometry = new THREE.Geometry()
     const { range } = this
-
-    for (let i = 0; i < this.nbParticles; i++) {
-      const particle = new THREE.Vector3(
-        randomFloat(-range, range),
-        randomFloat(-range, range),
-        randomFloat(-range, range),
-      )
-      particle.speed = randomFloat(0.2, 0.6)
-      particle.velocityStep = randomFloat(0.00006, 0.00018)
-      particle.velocity = 0
-      particle.offsetX = randomFloat(100, 600)
-      geometry.vertices.push(particle)
-    }
 
     // create particles
 
     const vertices = []
     const textureIndex = []
-    const speed = []
-    const velocityStep = []
-    const velocity = [];
-    const offsetX = []
 
-    for (var i = 0; i < this.nbParticles; i++) {
-      var x = randomFloat(-range, range)
-      var y = randomFloat(-range, range)
-      var z = randomFloat(-range, range)
+    this.particlesProperties = []
+
+    for (let i = 0; i < this.nbParticles; i++) {
+      const x = randomFloat(-range, range)
+      const y = randomFloat(-range, range)
+      const z = randomFloat(-range, range)
 
       textureIndex.push((Math.random() * 3) | 0)
-      speed.push(randomFloat(0.2, 0.6))
-      velocityStep.push(randomFloat(0.00006, 0.00018))
-      velocity.push(0)
-      offsetX.push(randomFloat(100, 600))
-
       vertices.push(x, y, z)
+
+      const properties = {
+        speed: randomFloat(0.2, 0.6),
+        velocityStep: randomFloat(0.00006, 0.00018),
+        velocity: 0,
+        offsetX: randomFloat(100, 600),
+      }
+
+      this.particlesProperties.push(properties)
     }
 
-    var bufferGeometry = new THREE.BufferGeometry()
+    const bufferGeometry = new THREE.BufferGeometry()
     bufferGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
     bufferGeometry.setAttribute('textureIndex', new THREE.Float32BufferAttribute(textureIndex, 1))
-    bufferGeometry.setAttribute('speed', new THREE.Float32BufferAttribute(speed, 1))
-    bufferGeometry.setAttribute('velocityStep', new THREE.Float32BufferAttribute(velocityStep, 1))
-    bufferGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocity, 1))
-    bufferGeometry.setAttribute('offsetX', new THREE.Float32BufferAttribute(offsetX, 1))
 
     // Override PointsMaterial with a custom one
     material.onBeforeCompile = shader => {
@@ -311,23 +288,39 @@ export default class Scene {
 
     if (this.particles) {
       // const { geometry } = this.particlesGroup[y]
+      const positions = this.particles.geometry.attributes.position.array
 
-      // for (let i = 0; i < geometry.vertices.length; i++) {
-      //   const particle = geometry.vertices[i]
-      //   particle.velocity += particle.velocityStep
-      //   particle.y -= particle.speed + particle.velocity
-      //   particle.velocityX = Math.sin(now / 500 + particle.offsetX)
-      //   particle.x += particle.velocityX / 8
-      //   if (particle.y < -this.range) {
-      //     particle.y = this.range
-      //     particle.velocity = 0
-      //   }
-      //   if (particle.x > this.range) {
-      //     particle.x = -this.range
-      //     particle.velocity = 0
-      //   }
-      // }
-      // geometry.verticesNeedUpdate = true
+      let index = 0
+      const vertex = new THREE.Vector3()
+
+      for (let i = 0, l = this.nbParticles; i < l; i++) {
+        vertex.fromBufferAttribute(this.particles.geometry.attributes.position, i)
+
+        const particleProperty = this.particlesProperties[i]
+        particleProperty.x = vertex.x
+        particleProperty.y = vertex.y
+        particleProperty.z = vertex.z
+
+        particleProperty.velocity += particleProperty.velocityStep
+        particleProperty.y -= particleProperty.speed + particleProperty.velocity
+        particleProperty.velocityX = Math.sin(now / 500 + particleProperty.offsetX)
+        particleProperty.x += particleProperty.velocityX / 8
+        if (particleProperty.y < -this.range) {
+          particleProperty.y = this.range
+          particleProperty.velocity = 0
+        }
+        if (particleProperty.x > this.range) {
+          particleProperty.x = -this.range
+          particleProperty.velocity = 0
+        }
+
+        // update positions attributes of bufferGeometry
+        positions[index++] = particleProperty.x
+        positions[index++] = particleProperty.y
+        positions[index++] = particleProperty.z
+      }
+
+      this.particles.geometry.attributes.position.needsUpdate = true
 
       this.sortPoints(this.particles)
     }
