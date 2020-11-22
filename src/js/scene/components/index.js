@@ -47,7 +47,7 @@ export default class Scene {
   }
 
   init = () => {
-    this.buildStats()
+    // this.buildStats()
     this.buildTextureScene()
     this.buildScene()
     this.buildRender()
@@ -240,7 +240,7 @@ export default class Scene {
     const loader = new THREE.FontLoader()
 
     loader.load('img/parisienne.json', font => {
-      let geometry = new THREE.TextGeometry('Rose & Automne', {
+      let geometry = new THREE.TextGeometry('Clique & déplace', {
         font,
         size: 80,
         height: 1,
@@ -278,7 +278,7 @@ export default class Scene {
   render = e => {
     const { now } = e.detail
 
-    this.stats.begin()
+    // this.stats.begin()
 
     if (this.controls) this.controls.update() // for damping
     // draw render target scene to render target
@@ -329,7 +329,7 @@ export default class Scene {
 
     this.uniforms.time.value = now / 1000
 
-    this.stats.end()
+    // this.stats.end()
   }
 
   // EVENTS
@@ -345,12 +345,11 @@ export default class Scene {
 
   setSizes() {
     const DPR = window.devicePixelRatio ? window.devicePixelRatio : 1
-    // if (DPR > 1 && window.innerWidth > 1680) {
-    //   this.renderer.setPixelRatio(1.5)
-    // } else {
-    //   this.renderer.setPixelRatio(DPR)
-    // }
-    this.renderer.setPixelRatio(1)
+    if (DPR > 1 && window.innerWidth > 768) {
+      this.renderer.setPixelRatio(1.5)
+    } else {
+      this.renderer.setPixelRatio(DPR)
+    }
     this.renderer.setSize(this.width, this.height)
   }
 
