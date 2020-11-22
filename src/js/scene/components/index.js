@@ -123,6 +123,8 @@ export default class Scene {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement)
     this.controls.autoRotate = true
     this.controls.enableDamping = true
+    this.controls.minDistance = 0
+    this.controls.maxDistance = 550
   }
 
   buildTextureScene() {
