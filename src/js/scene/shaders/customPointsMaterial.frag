@@ -21,11 +21,11 @@ void main() {
 	#include <alphatest_fragment>
 	outgoingLight = diffuseColor.rgb;
 	if (vTextureIndex > 1.5) {
-		gl_FragColor = texture2D(textures[0], gl_PointCoord);
+		gl_FragColor = texture2D(textures[0], vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y));
 	} else if (vTextureIndex > 0.5) {
-		gl_FragColor = texture2D(textures[1], gl_PointCoord);
+		gl_FragColor = texture2D(textures[1], vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y));
 	} else {
-		gl_FragColor = texture2D(textures[2], gl_PointCoord);
+		gl_FragColor = texture2D(textures[2], vec2(gl_PointCoord.x, 1.0 - gl_PointCoord.y));
 	}
 
 	#include <premultiplied_alpha_fragment>
